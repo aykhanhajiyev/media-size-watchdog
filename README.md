@@ -89,8 +89,6 @@ let session = URLSession(configuration: configuration)
 #endif
 ```
 
-`URLSessionMediaAdapter` calculates size by counting received response bytes, so it does not depend on the URL or `Content-Length` header to know the final size. The issue is reported after the response completes. URLs with encoded or non-ASCII file names still work when the path extension or MIME type identifies the media type.
-
 For custom routers or networking layers, keep a `CustomNetworkAdapter` instance and call `record(url:size:mimeType:)` when a response completes.
 
 ## Release Builds
