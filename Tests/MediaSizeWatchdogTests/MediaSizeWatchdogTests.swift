@@ -45,6 +45,35 @@ final class MediaSizeWatchdogTests: XCTestCase {
         XCTAssertEqual(store.issues.first?.mediaType, .video)
     }
 
+    func testReportsOversizedVideoWithNonASCIIFileName() {
+        let store = MediaSizeIssueStore()
+        let watchdog = MediaSizeWatchdog(
+            issueStore: store,
+            logger: { _ in }
+        )
+        let url = URL(string: "https://videos.ctfassets.net/rckhx7d9app2/4HyjtiNJGJ0uIwfdczutMm/862d18b7a9d99b62ed6e437ffc5ae477/IÌ_stanbul.mp4")!
+
+        watchdog.start(
+            config: MediaSizeWatchdogConfig(
+                imageThreshold: 10,
+                videoThreshold: 100,
+                showsAlert: false
+            ),
+            adapters: []
+        )
+
+        watchdog.report(
+            url: url,
+            size: 101,
+            mimeType: nil,
+            source: .urlSession
+        )
+
+        XCTAssertEqual(url.pathExtension, "mp4")
+        XCTAssertEqual(store.issues.count, 1)
+        XCTAssertEqual(store.issues.first?.mediaType, .video)
+    }
+
     func testIgnoresUnknownMedia() {
         let store = MediaSizeIssueStore()
         let watchdog = MediaSizeWatchdog(issueStore: store, logger: { _ in })
