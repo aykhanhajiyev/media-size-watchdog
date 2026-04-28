@@ -27,7 +27,6 @@ public final class MediaSizeWatchdog {
         config: MediaSizeWatchdogConfig = MediaSizeWatchdogConfig(),
         adapters: [MediaSizeAdapter]
     ) {
-        #if DEBUG
         let adaptersToStart = queue.sync {
             if isRunning {
                 self.adapters.forEach { $0.stop() }
@@ -40,11 +39,9 @@ public final class MediaSizeWatchdog {
         }
 
         adaptersToStart.forEach { $0.start() }
-        #endif
     }
 
     public func stop() {
-        #if DEBUG
         let adaptersToStop = queue.sync {
             let currentAdapters = adapters
             adapters = []
@@ -53,7 +50,6 @@ public final class MediaSizeWatchdog {
         }
 
         adaptersToStop.forEach { $0.stop() }
-        #endif
     }
 
     public var issues: [MediaSizeIssue] {
@@ -68,7 +64,6 @@ extension MediaSizeWatchdog: MediaSizeReporter {
         mimeType: String?,
         source: MediaSource
     ) {
-        #if DEBUG
         let currentConfig = queue.sync { config }
         let mediaType = MediaTypeDetector.detect(url: url, mimeType: mimeType)
 
@@ -91,7 +86,6 @@ extension MediaSizeWatchdog: MediaSizeReporter {
         if currentConfig.showsAlert {
             MediaSizeAlertPresenter.show(issue: issue)
         }
-        #endif
     }
 
     private func threshold(for mediaType: MediaType, config: MediaSizeWatchdogConfig) -> Int64? {

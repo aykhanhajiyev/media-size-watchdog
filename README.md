@@ -349,4 +349,4 @@ For custom routers or networking layers, keep a `CustomNetworkAdapter` instance 
 
 ## Release Builds
 
-The public API remains available in release builds so integration code can compile, but `start`, `stop`, adapter interception, alerts, and reporting behavior are compiled as no-ops unless `DEBUG` is set.
+Keep integration code inside `#if DEBUG` in your app. The package itself does not depend on the package target receiving a `DEBUG` compilation flag, which makes it work reliably in Tuist/Xcode projects where external packages may have different build settings.

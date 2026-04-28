@@ -10,23 +10,18 @@ public final class CustomNetworkAdapter: MediaSizeAdapter {
     }
 
     public func start() {
-        #if DEBUG
         lock.withLock {
             isRunning = true
         }
-        #endif
     }
 
     public func stop() {
-        #if DEBUG
         lock.withLock {
             isRunning = false
         }
-        #endif
     }
 
     public func record(url: URL, size: Int64, mimeType: String?) {
-        #if DEBUG
         let shouldReport = lock.withLock { isRunning }
         guard shouldReport else { return }
 
@@ -36,6 +31,5 @@ public final class CustomNetworkAdapter: MediaSizeAdapter {
             mimeType: mimeType,
             source: .custom
         )
-        #endif
     }
 }

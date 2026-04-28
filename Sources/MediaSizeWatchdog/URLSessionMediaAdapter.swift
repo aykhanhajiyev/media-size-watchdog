@@ -8,31 +8,24 @@ public final class URLSessionMediaAdapter: MediaSizeAdapter {
     }
 
     public func start() {
-        #if DEBUG
         URLSessionMediaURLProtocol.setReporter(reporter)
         URLProtocol.registerClass(URLSessionMediaURLProtocol.self)
-        #endif
     }
 
     public func stop() {
-        #if DEBUG
         URLProtocol.unregisterClass(URLSessionMediaURLProtocol.self)
         URLSessionMediaURLProtocol.setReporter(nil)
-        #endif
     }
 
     public static func instrument(_ configuration: URLSessionConfiguration) -> URLSessionConfiguration {
-        #if DEBUG
         let existingProtocolClasses = configuration.protocolClasses ?? []
         if !existingProtocolClasses.contains(where: { $0 == URLSessionMediaURLProtocol.self }) {
             configuration.protocolClasses = [URLSessionMediaURLProtocol.self] + existingProtocolClasses
         }
-        #endif
         return configuration
     }
 }
 
-#if DEBUG
 final class URLSessionMediaURLProtocol: URLProtocol, URLSessionDataDelegate {
     private static let handledKey = "MediaSizeWatchdog.URLProtocolHandled"
     private static let reporterLock = NSLock()
@@ -129,4 +122,3 @@ final class URLSessionMediaURLProtocol: URLProtocol, URLSessionDataDelegate {
         )
     }
 }
-#endif

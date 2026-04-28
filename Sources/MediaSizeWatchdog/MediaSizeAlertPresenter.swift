@@ -2,7 +2,7 @@ import Foundation
 
 enum MediaSizeAlertPresenter {
     static func show(issue: MediaSizeIssue) {
-        #if DEBUG && canImport(UIKit)
+        #if canImport(UIKit)
         DispatchQueue.main.async {
             guard
                 let rootViewController = UIApplication.shared.mediaSizeWatchdogTopViewController(),
@@ -30,7 +30,7 @@ enum MediaSizeAlertPresenter {
     }
 }
 
-#if DEBUG && canImport(UIKit)
+#if canImport(UIKit)
 import UIKit
 
 private extension UIApplication {
