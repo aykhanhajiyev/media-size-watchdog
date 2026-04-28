@@ -1,5 +1,5 @@
+#if canImport(SDWebImage)
 import Foundation
-import MediaSizeWatchdog
 import SDWebImage
 
 public final class SDWebImageMediaAdapter: MediaSizeAdapter {
@@ -65,11 +65,4 @@ public final class SDWebImageMediaAdapter: MediaSizeAdapter {
         #endif
     }
 }
-
-private extension NSLock {
-    func withLock<Result>(_ body: () throws -> Result) rethrows -> Result {
-        lock()
-        defer { unlock() }
-        return try body()
-    }
-}
+#endif

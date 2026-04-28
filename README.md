@@ -24,17 +24,16 @@ MediaSizeWatchdog.shared.start(
 
 ## Optional Library Adapters
 
-These adapters are shipped as separate products so the core package does not force app code to use a specific networking or image loading library.
+These adapters are guarded with `canImport`, so `MediaSizeWatchdog` does not declare or lock Alamofire, SDWebImage, or Kingfisher as package dependencies. Add those libraries in your app if you use them, then import `MediaSizeWatchdog`.
 
 ### Alamofire
 
-Add the `MediaSizeWatchdogAlamofire` product and attach the adapter to the `Session` as an `EventMonitor`:
+Attach the adapter to the `Session` as an `EventMonitor`:
 
 ```swift
 #if DEBUG
 import Alamofire
 import MediaSizeWatchdog
-import MediaSizeWatchdogAlamofire
 
 let alamofireAdapter = AlamofireMediaAdapter(reporter: MediaSizeWatchdog.shared)
 
@@ -48,12 +47,10 @@ let session = Session(eventMonitors: [alamofireAdapter])
 
 ### SDWebImage
 
-Add the `MediaSizeWatchdogSDWebImage` product:
-
 ```swift
 #if DEBUG
 import MediaSizeWatchdog
-import MediaSizeWatchdogSDWebImage
+import SDWebImage
 
 MediaSizeWatchdog.shared.start(
     adapters: [
@@ -65,12 +62,10 @@ MediaSizeWatchdog.shared.start(
 
 ### Kingfisher
 
-Add the `MediaSizeWatchdogKingfisher` product:
-
 ```swift
 #if DEBUG
+import Kingfisher
 import MediaSizeWatchdog
-import MediaSizeWatchdogKingfisher
 
 MediaSizeWatchdog.shared.start(
     adapters: [

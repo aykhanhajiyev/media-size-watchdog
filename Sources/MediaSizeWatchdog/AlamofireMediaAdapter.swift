@@ -1,6 +1,6 @@
+#if canImport(Alamofire)
 import Alamofire
 import Foundation
-import MediaSizeWatchdog
 
 public final class AlamofireMediaAdapter: EventMonitor, MediaSizeAdapter, @unchecked Sendable {
     public let queue: DispatchQueue
@@ -55,11 +55,4 @@ public final class AlamofireMediaAdapter: EventMonitor, MediaSizeAdapter, @unche
         #endif
     }
 }
-
-private extension NSLock {
-    func withLock<Result>(_ body: () throws -> Result) rethrows -> Result {
-        lock()
-        defer { unlock() }
-        return try body()
-    }
-}
+#endif

@@ -1,6 +1,6 @@
+#if canImport(Kingfisher)
 import Foundation
 import Kingfisher
-import MediaSizeWatchdog
 
 public final class KingfisherMediaAdapter: NSObject, MediaSizeAdapter, ImageDownloaderDelegate {
     private weak var reporter: MediaSizeReporter?
@@ -120,11 +120,4 @@ public final class KingfisherMediaAdapter: NSObject, MediaSizeAdapter, ImageDown
         #endif
     }
 }
-
-private extension NSLock {
-    func withLock<Result>(_ body: () throws -> Result) rethrows -> Result {
-        lock()
-        defer { unlock() }
-        return try body()
-    }
-}
+#endif
