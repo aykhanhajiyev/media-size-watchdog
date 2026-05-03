@@ -1,11 +1,10 @@
 # MediaSizeWatchdog
 
-`MediaSizeWatchdog` is a debug-only Swift package for detecting oversized image and video responses during iOS development.
+`MediaSizeWatchdog` is a Swift package for detecting oversized image and video responses.
 
 ## Usage
 
 ```swift
-#if DEBUG
 import MediaSizeWatchdog
 
 MediaSizeWatchdog.shared.start(
@@ -19,7 +18,6 @@ MediaSizeWatchdog.shared.start(
         CustomNetworkAdapter(reporter: MediaSizeWatchdog.shared)
     ]
 )
-#endif
 ```
 
 Provide your own logger by conforming to `MediaSizeLogger`:
@@ -44,7 +42,6 @@ final class AppMediaLogger: MediaSizeLogger {
 Create `AlamofireMediaAdapter.swift` in your app target:
 
 ```swift
-#if DEBUG
 import Alamofire
 import Foundation
 import MediaSizeWatchdog
@@ -100,13 +97,11 @@ private extension NSLock {
         return try body()
     }
 }
-#endif
 ```
 
 Attach it to the `Session` as an `EventMonitor`:
 
 ```swift
-#if DEBUG
 import Alamofire
 import MediaSizeWatchdog
 
@@ -117,7 +112,6 @@ MediaSizeWatchdog.shared.start(
 )
 
 let session = Session(eventMonitors: [alamofireAdapter])
-#endif
 ```
 
 ### SDWebImage
@@ -125,7 +119,6 @@ let session = Session(eventMonitors: [alamofireAdapter])
 Create `SDWebImageMediaAdapter.swift` in your app target:
 
 ```swift
-#if DEBUG
 import Foundation
 import MediaSizeWatchdog
 import SDWebImage
@@ -195,13 +188,11 @@ private extension NSLock {
         return try body()
     }
 }
-#endif
 ```
 
 Start it with the watchdog:
 
 ```swift
-#if DEBUG
 import MediaSizeWatchdog
 import SDWebImage
 
@@ -210,7 +201,6 @@ MediaSizeWatchdog.shared.start(
         SDWebImageMediaAdapter(reporter: MediaSizeWatchdog.shared)
     ]
 )
-#endif
 ```
 
 ### Kingfisher
@@ -218,7 +208,6 @@ MediaSizeWatchdog.shared.start(
 Create `KingfisherMediaAdapter.swift` in your app target:
 
 ```swift
-#if DEBUG
 import Foundation
 import Kingfisher
 import MediaSizeWatchdog
@@ -331,13 +320,11 @@ private extension NSLock {
         return try body()
     }
 }
-#endif
 ```
 
 Start it with the watchdog:
 
 ```swift
-#if DEBUG
 import Kingfisher
 import MediaSizeWatchdog
 
@@ -346,20 +333,17 @@ MediaSizeWatchdog.shared.start(
         KingfisherMediaAdapter(reporter: MediaSizeWatchdog.shared)
     ]
 )
-#endif
 ```
 
 For custom `URLSession` instances, instrument the configuration before creating the session:
 
 ```swift
-#if DEBUG
 let configuration = URLSessionMediaAdapter.instrument(URLSessionConfiguration.default)
 let session = URLSession(configuration: configuration)
-#endif
 ```
 
 For custom routers or networking layers, keep a `CustomNetworkAdapter` instance and call `record(url:size:mimeType:)` when a response completes.
 
-## Release Builds
+## Build Modes
 
-Keep integration code inside `#if DEBUG` in your app. The package itself does not depend on the package target receiving a `DEBUG` compilation flag, which makes it work reliably in Tuist/Xcode projects where external packages may have different build settings.
+Use `MediaSizeWatchdog` in any build mode your app requires.
