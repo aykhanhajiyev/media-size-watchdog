@@ -9,7 +9,7 @@ public final class MediaSizeWatchdog {
     private var config = MediaSizeWatchdogConfig()
     private var adapters: [MediaSizeAdapter] = []
     private var isRunning = false
-    private let logger: (String) -> Void
+    private var logger: any MediaSizeLogger
 
     public convenience init() {
         self.init(issueStore: MediaSizeIssueStore())
@@ -17,7 +17,7 @@ public final class MediaSizeWatchdog {
 
     public init(
         issueStore: MediaSizeIssueStore = MediaSizeIssueStore(),
-        logger: @escaping (String) -> Void = { print($0) }
+        logger: any MediaSizeLogger = DefaultMediaSizeLogger()
     ) {
         self.issueStore = issueStore
         self.logger = logger
@@ -25,6 +25,7 @@ public final class MediaSizeWatchdog {
 
     public func start(
         config: MediaSizeWatchdogConfig = MediaSizeWatchdogConfig(),
+        logger: (any MediaSizeLogger)? = nil,
         adapters: [MediaSizeAdapter]
     ) {
         let adaptersToStart = queue.sync {
@@ -33,6 +34,9 @@ public final class MediaSizeWatchdog {
             }
 
             self.config = config
+            if let logger {
+                self.logger = logger
+            }
             self.adapters = adapters
             self.isRunning = true
             return adapters
@@ -82,10 +86,6 @@ extension MediaSizeWatchdog: MediaSizeReporter {
 
         issueStore.append(issue)
         log(issue)
-
-        if currentConfig.showsAlert {
-            MediaSizeAlertPresenter.show(issue: issue)
-        }
     }
 
     private func threshold(for mediaType: MediaType, config: MediaSizeWatchdogConfig) -> Int64? {
@@ -100,7 +100,8 @@ extension MediaSizeWatchdog: MediaSizeReporter {
     }
 
     private func log(_ issue: MediaSizeIssue) {
-        logger(
+        let currentLogger = queue.sync { logger }
+        currentLogger.log(
             """
             [MediaSizeWatchdog] Oversized \(issue.mediaType.rawValue) from \(issue.source.rawValue): \(issue.url.absoluteString) \
             size=\(MediaSizeFormatter.string(from: issue.size)) threshold=\(MediaSizeFormatter.string(from: issue.threshold)) \

@@ -11,15 +11,28 @@ import MediaSizeWatchdog
 MediaSizeWatchdog.shared.start(
     config: .init(
         imageThreshold: 700 * 1024,
-        videoThreshold: 8 * 1024 * 1024,
-        showsAlert: true
+        videoThreshold: 8 * 1024 * 1024
     ),
+    logger: AppMediaLogger(),
     adapters: [
         URLSessionMediaAdapter(reporter: MediaSizeWatchdog.shared),
         CustomNetworkAdapter(reporter: MediaSizeWatchdog.shared)
     ]
 )
 #endif
+```
+
+Provide your own logger by conforming to `MediaSizeLogger`:
+
+```swift
+import MediaSizeWatchdog
+
+final class AppMediaLogger: MediaSizeLogger {
+    func log(_ message: String) {
+        // Forward to your app logging system.
+        print("MediaWatchdog:", message)
+    }
+}
 ```
 
 ## Optional Library Adapters

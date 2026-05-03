@@ -2,9 +2,13 @@ import XCTest
 @testable import MediaSizeWatchdog
 
 final class MediaSizeWatchdogTests: XCTestCase {
+    private final class NoOpLogger: MediaSizeLogger {
+        func log(_ message: String) {}
+    }
+
     func testReportsOversizedImageByMimeType() {
         let store = MediaSizeIssueStore()
-        let watchdog = MediaSizeWatchdog(issueStore: store, logger: { _ in })
+        let watchdog = MediaSizeWatchdog(issueStore: store, logger: NoOpLogger())
 
         watchdog.report(
             url: URL(string: "https://example.com/avatar")!,
@@ -22,14 +26,13 @@ final class MediaSizeWatchdogTests: XCTestCase {
         let store = MediaSizeIssueStore()
         let watchdog = MediaSizeWatchdog(
             issueStore: store,
-            logger: { _ in }
+            logger: NoOpLogger()
         )
 
         watchdog.start(
             config: MediaSizeWatchdogConfig(
                 imageThreshold: 10,
-                videoThreshold: 100,
-                showsAlert: false
+                videoThreshold: 100
             ),
             adapters: []
         )
@@ -47,7 +50,7 @@ final class MediaSizeWatchdogTests: XCTestCase {
 
     func testIgnoresUnknownMedia() {
         let store = MediaSizeIssueStore()
-        let watchdog = MediaSizeWatchdog(issueStore: store, logger: { _ in })
+        let watchdog = MediaSizeWatchdog(issueStore: store, logger: NoOpLogger())
 
         watchdog.report(
             url: URL(string: "https://example.com/document.txt")!,
@@ -63,7 +66,7 @@ final class MediaSizeWatchdogTests: XCTestCase {
         let store = MediaSizeIssueStore()
         let watchdog = MediaSizeWatchdog(
             issueStore: store,
-            logger: { _ in }
+            logger: NoOpLogger()
         )
         let url = URL(string: "https://example.com/image.png")!
 
