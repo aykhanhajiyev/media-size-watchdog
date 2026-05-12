@@ -1,41 +1,175 @@
 # MediaSizeWatchdog
 
-`MediaSizeWatchdog` is a Swift package for detecting oversized image and video responses.
+`MediaSizeWatchdog` is a small Swift package that reports oversized image and video network responses. It is useful in debug builds, QA builds, or internal tooling where you want to catch unexpectedly large media before it reaches production.
 
-## Usage
+The package does not upload data or modify responses. It records matching oversized media in memory and logs a readable warning through a configurable logger.
+
+## Requirements
+
+- Swift 5.9+
+- iOS 13.0+
+- macOS 10.15+
+
+## Installation
+
+Add the package to your project with Swift Package Manager:
+
+```swift
+.package(url: "https://github.com/<your-org>/MediaSizeWatchDog-spm.git", from: "2.0.0")
+```
+
+Then add `MediaSizeWatchdog` to the target that should monitor media responses.
+
+## Quick Start
 
 ```swift
 import MediaSizeWatchdog
 
-MediaSizeWatchdog.shared.start(
-    config: .init(
-        imageThreshold: 700 * 1024,
-        videoThreshold: 8 * 1024 * 1024
+let watchdog = MediaSizeWatchdog.shared
+
+watchdog.start(
+    config: MediaSizeWatchdogConfig(
+        imageThreshold: 500 * 1024,
+        videoThreshold: 5 * 1024 * 1024
     ),
-    logger: AppMediaLogger(),
     adapters: [
-        URLSessionMediaAdapter(reporter: MediaSizeWatchdog.shared),
-        CustomNetworkAdapter(reporter: MediaSizeWatchdog.shared)
+        URLSessionMediaAdapter(reporter: watchdog)
     ]
 )
 ```
 
-Provide your own logger by conforming to `MediaSizeLogger`:
+When the watchdog sees an image or video response above the configured threshold, it stores a `MediaSizeIssue` and logs a message like:
+
+```text
+[MediaSizeWatchdog] Oversized image from urlSession: https://example.com/photo.jpg size=812 KB threshold=500 KB mimeType=image/jpeg
+```
+
+## Configuration
+
+`MediaSizeWatchdogConfig` accepts byte thresholds:
+
+```swift
+let config = MediaSizeWatchdogConfig(
+    imageThreshold: 700 * 1024,
+    videoThreshold: 8 * 1024 * 1024
+)
+```
+
+Defaults:
+
+- Images: `500 * 1024` bytes
+- Videos: `5 * 1024 * 1024` bytes
+
+Only detected image and video responses are reported. Unknown media types are ignored.
+
+## URLSession Adapter
+
+For sessions that use `URLSessionConfiguration.default`, starting `URLSessionMediaAdapter` registers an internal `URLProtocol`:
+
+```swift
+MediaSizeWatchdog.shared.start(
+    adapters: [
+        URLSessionMediaAdapter(reporter: MediaSizeWatchdog.shared)
+    ]
+)
+```
+
+For custom `URLSessionConfiguration` instances, instrument the configuration before creating the session:
+
+```swift
+let configuration = URLSessionMediaAdapter.instrument(URLSessionConfiguration.default)
+let session = URLSession(configuration: configuration)
+```
+
+## Custom Network Adapter
+
+Use `CustomNetworkAdapter` when your app already knows the final response size:
+
+```swift
+import MediaSizeWatchdog
+
+let customAdapter = CustomNetworkAdapter(reporter: MediaSizeWatchdog.shared)
+
+MediaSizeWatchdog.shared.start(
+    adapters: [customAdapter]
+)
+
+customAdapter.record(
+    url: URL(string: "https://example.com/banner.png")!,
+    size: Int64(data.count),
+    mimeType: response.mimeType
+)
+```
+
+`record(url:size:mimeType:)` only reports while the adapter is running.
+
+## Custom Logging
+
+Provide a logger by conforming to `MediaSizeLogger`:
 
 ```swift
 import MediaSizeWatchdog
 
 final class AppMediaLogger: MediaSizeLogger {
     func log(_ message: String) {
-        // Forward to your app logging system.
-        print("MediaWatchdog:", message)
+        // Forward to OSLog, your analytics console, or a debug overlay.
+        print(message)
     }
 }
+
+MediaSizeWatchdog.shared.start(
+    logger: AppMediaLogger(),
+    adapters: [
+        URLSessionMediaAdapter(reporter: MediaSizeWatchdog.shared)
+    ]
+)
 ```
+
+If no logger is provided, `DefaultMediaSizeLogger` prints messages with `print`.
+
+## Reading Issues
+
+Issues are kept in memory:
+
+```swift
+let issues = MediaSizeWatchdog.shared.issues
+```
+
+Each `MediaSizeIssue` includes:
+
+- `url`
+- `mediaType`
+- `size`
+- `threshold`
+- `mimeType`
+- `source`
+- `date`
+
+The default `MediaSizeIssueStore` deduplicates reports by URL. To clear stored issues:
+
+```swift
+MediaSizeWatchdog.shared.issueStore.removeAll()
+```
+
+## Stopping
+
+```swift
+MediaSizeWatchdog.shared.stop()
+```
+
+Calling `start` again replaces the current configuration and adapters.
+
+## Media Detection
+
+Detection uses the MIME type first and then falls back to the URL path extension.
+
+Supported image extensions include `jpg`, `jpeg`, `png`, `gif`, `webp`, `heic`, `heif`, `bmp`, `tiff`, `tif`, `avif`, and `svg`.
+
+Supported video extensions include `mp4`, `mov`, `m4v`, `webm`, `avi`, `mkv`, `mpeg`, `mpg`, `3gp`, and `3gpp`.
 
 ## Optional Library Adapters
 
-`MediaSizeWatchdog` intentionally does not depend on Alamofire, SDWebImage, or Kingfisher. If your app uses one of those libraries, add the matching adapter implementation inside your app target, where both `MediaSizeWatchdog` and the third-party library are visible.
+The package intentionally does not depend on Alamofire, SDWebImage, Kingfisher, Nuke, or other networking/image libraries. If your app uses one of those libraries, add the matching adapter inside your app target, where both `MediaSizeWatchdog` and the third-party library are available.
 
 ### Alamofire
 
@@ -73,7 +207,10 @@ final class AlamofireMediaAdapter: EventMonitor, MediaSizeAdapter, @unchecked Se
         report(response: response)
     }
 
-    func request<Value>(_ request: DataRequest, didParseResponse response: DataResponse<Value, AFError>) where Value: Sendable {
+    func request<Value>(
+        _ request: DataRequest,
+        didParseResponse response: DataResponse<Value, AFError>
+    ) where Value: Sendable {
         report(response: response)
     }
 
@@ -99,7 +236,7 @@ private extension NSLock {
 }
 ```
 
-Attach it to the `Session` as an `EventMonitor`:
+Attach it to your `Session` as an `EventMonitor`:
 
 ```swift
 import Alamofire
@@ -335,15 +472,25 @@ MediaSizeWatchdog.shared.start(
 )
 ```
 
-For custom `URLSession` instances, instrument the configuration before creating the session:
+### Other Libraries
+
+For Nuke or any custom networking/image pipeline, create an app-side adapter that conforms to `MediaSizeAdapter` and calls:
 
 ```swift
-let configuration = URLSessionMediaAdapter.instrument(URLSessionConfiguration.default)
-let session = URLSession(configuration: configuration)
+reporter.report(
+    url: url,
+    size: size,
+    mimeType: mimeType,
+    source: .custom
+)
 ```
 
-For custom routers or networking layers, keep a `CustomNetworkAdapter` instance and call `record(url:size:mimeType:)` when a response completes.
+Use the existing `CustomNetworkAdapter` as the simplest reference implementation.
 
-## Build Modes
+## Verification
 
-Use `MediaSizeWatchdog` in any build mode your app requires.
+Run the test suite with:
+
+```bash
+swift test
+```
